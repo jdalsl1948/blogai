@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>블로그 초안 생성기</title>
+  <style>
+    :root {
+      --navy:       #0b1221;
+      --navy-light: #132035;
+      --navy-card:  #1a2942;
+      --gold:       #c9a84c;
+      --gold-hover: #e8c96a;
+      --cream:      #e8e0d0;
+      --muted:      #8a9ab5;
+      --green:      #4caf7a;
+      --red:        #e05555;
+      --border:     rgba(255,255,255,0.08);
+      --gold-border: rgba(201,168,76,0.35);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: var(--navy);
+      color: var(--cream);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ===== GATE ===== */
+    #gate {
+      position: fixed; inset: 0;
+      background: var(--navy);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200;
+    }
+    .gate-card {
+      background: var(--navy-card);
+      border: 1px solid var(--gold-border);
+      border-radius: 18px;
+      padding: 48px 40px;
+      width: 340px;
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    .gate-logo { text-align: center; }
+    .gate-logo h1 { font-size: 26px; font-weight: 800; color: var(--gold); letter-spacing: -0.5px; }
+    .gate-logo p  { font-size: 13px; color: var(--muted); margin-top: 6px; }
+    .gate-input {
+      width: 100%;
+      background: var(--navy-light);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px 16px;
+      color: var(--cream);
+      font-size: 16px;
+      letter-spacing: 6px;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .gate-input:focus { border-color: var(--gold); }
+    .gate-input.shake {
+      animation: shake 0.35s ease;
+      border-color: var(--red);
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25%      { transform: translateX(-6px); }
+      75%      { transform: translateX(6px); }
+    }
+    .gate-btn {
+      width: 100%;
+      background: var(--gold);
+      color: var(--navy);
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .gate-btn:hover { background: var(--gold-hover); }
+    .gate-err { color: var(--red); font-size: 13px; text-align: center; min-height: 18px; }
+
+    /* ===== APP ===== */
+    #app {
+      display: none;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 36px 20px 100px;
+    }
+    .app-header { text-align: center; margin-bottom: 32px; }
+    .app-header h1 { font-size: 24px; font-weight: 800; color: var(--gold); }
+    .app-header p  { font-size: 13px; color: var(--muted); margin-top: 5px; }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 14px;
+    }
+    .card-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      margin-bottom: 14px;
+    }
+
+    /* ===== CATEGORY TABS ===== */
+    .tabs { display: flex; gap: 10px; }
+    .tab {
+      flex: 1;
+      background: var(--navy-light);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      font-size: 16px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .tab:hover { border-color: var(--gold-border); color: var(--cream); }
+    .tab.active {
+      background: rgba(201,168,76,0.12);
+      border-color: var(--gold);
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    /* ===== SUBCATEGORY CHIPS ===== */
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      background: var(--navy-light);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 7px 18px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .chip:hover { border-color: var(--gold-border); color: var(--cream); }
+    .chip.active {
+      background: rgba(201,168,76,0.15);
+      border-color: var(--gold);
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    /* ===== FORM FIELDS ===== */
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .field input, .field textarea, .field select {
+      width: 100%;
+      background: var(--navy-light);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 14px;
+      color: var(--cream);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    .field textarea { resize: vertical; min-height: 78px; }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--gold); }
+    .field input.invalid, .field textarea.invalid { border-color: var(--red); }
+    .field select option { background: var(--navy-card); }
+
+    /* ===== IMAGE UPLOAD ===== */
+    .upload-area {
+      border: 2px dashed rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 22px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .upload-area:hover, .upload-area.drag-over {
+      border-color: var(--gold);
+      background: rgba(201,168,76,0.04);
+    }
+    .upload-area .upload-icon { font-size: 28px; margin-bottom: 6px; }
+    .upload-area p { font-size: 13px; color: var(--muted); }
+    .upload-area small { font-size: 11px; color: rgba(138,154,181,0.6); }
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .img-item {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--navy-light);
+    }
+    .img-item img { width:100%; height:100%; object-fit:cover; display:block; }
+    .img-remove {
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 22px; height: 22px;
+      background: rgba(0,0,0,0.65);
+      border: none;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+    }
+    .img-remove:hover { background: var(--red); }
+
+    /* ===== GENERATE BUTTON ===== */
+    #generate-btn {
+      width: 100%;
+      background: var(--gold);
+      color: var(--navy);
+      border: none;
+      border-radius: 12px;
+      padding: 17px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: -0.3px;
+      margin-bottom: 14px;
+    }
+    #generate-btn:hover:not(:disabled) { background: var(--gold-hover); transform: translateY(-1px); }
+    #generate-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    /* ===== OUTPUT ===== */
+    .output-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .copy-btn {
+      background: rgba(201,168,76,0.12);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      border-radius: 7px;
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover { background: rgba(201,168,76,0.22); }
+    #output-text {
+      font-size: 14px;
+      line-height: 1.9;
+      color: var(--cream);
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 120px;
+    }
+    .cursor {
+      display: inline-block;
+      width: 2px; height: 15px;
+      background: var(--gold);
+      vertical-align: text-bottom;
+      margin-left: 1px;
+      animation: blink 0.75s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .char-count { font-size: 11px; color: var(--muted); margin-top: 12px; text-align: right; }
+
+    /* ===== HISTORY ===== */
+    .history-toggle {
+      position: fixed;
+      right: 20px; bottom: 24px;
+      background: var(--navy-card);
+      border: 1px solid var(--gold-border);
+      color: var(--gold);
+      border-radius: 50px;
+      padding: 10px 18px;
+      font-size: 13px;
+      cursor: pointer;
+      z-index: 50;
+      transition: all 0.2s;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    .history-toggle:hover { background: rgba(201,168,76,0.1); }
+    .history-drawer {
+      position: fixed;
+      right: 0; top: 0; bottom: 0;
+      width: 360px;
+      background: var(--navy-card);
+      border-left: 1px solid var(--border);
+      z-index: 100;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      display: flex; flex-direction: column;
+      box-shadow: -8px 0 40px rgba(0,0,0,0.4);
+    }
+    .history-drawer.open { transform: translateX(0); }
+    .history-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .history-header span { font-size: 14px; font-weight: 700; color: var(--gold); }
+    .history-close {
+      background: none; border: none; color: var(--muted);
+      font-size: 20px; cursor: pointer; line-height: 1;
+    }
+    .history-list { flex: 1; overflow-y: auto; padding: 12px; }
+    .history-item {
+      background: var(--navy-light);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .history-item:hover { border-color: var(--gold-border); }
+    .history-item-meta {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: var(--muted); margin-bottom: 6px;
+    }
+    .history-item-tag {
+      font-size: 11px;
+      background: rgba(201,168,76,0.12);
+      color: var(--gold);
+      border-radius: 10px;
+      padding: 2px 8px;
+    }
+    .history-item-preview {
+      font-size: 12px; color: var(--cream);
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-height: 1.6;
+    }
+    .history-empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
+    .history-clear {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+    }
+    .history-clear button {
+      width: 100%; background: none; border: 1px solid rgba(224,85,85,0.3);
+      color: var(--red); border-radius: 8px; padding: 8px;
+      font-size: 12px; cursor: pointer; transition: all 0.2s;
+    }
+    .history-clear button:hover { background: rgba(224,85,85,0.1); }
+
+    /* ===== HIDDEN ===== */
+    .hidden { display: none !important; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 480px) {
+      #app { padding: 24px 14px 80px; }
+      .card { padding: 16px; }
+      .image-grid { grid-template-columns: repeat(3,1fr); }
+      .gate-card { width: calc(100% - 40px); padding: 36px 28px; }
+      .history-drawer { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== GATE ===== -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">
+      <h1>블로그 초안 생성기</h1>
+      <p>네이버 블로그 맞춤형 글 자동 생성</p>
+    </div>
+    <input
+      type="password"
+      id="pw-input"
+      class="gate-input"
+      placeholder="비밀번호"
+      onkeydown="if(event.key==='Enter')login()"
+      autocomplete="current-password"
+    >
+    <button class="gate-btn" onclick="login()">입장하기</button>
+    <p class="gate-err" id="gate-err"></p>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app">
+  <div class="app-header">
+    <h1>블로그 초안 생성기</h1>
+    <p>네이버 블로그 맞춤형 글 자동 생성</p>
+  </div>
+
+  <!-- 1. Category -->
+  <div class="card">
+    <div class="card-label">카테고리</div>
+    <div class="tabs">
+      <div class="tab" id="tab-food"   onclick="selectCategory('맛집', this)">맛집</div>
+      <div class="tab" id="tab-travel" onclick="selectCategory('여행', this)">여행</div>
+    </div>
+  </div>
+
+  <!-- 2. Subcategory -->
+  <div class="card hidden" id="card-sub">
+    <div class="card-label">글 유형</div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <!-- 3. Form -->
+  <div class="card hidden" id="card-form">
+    <div class="card-label">내용 입력</div>
+    <div id="form-fields"></div>
+  </div>
+
+  <!-- 4. Images -->
+  <div class="card hidden" id="card-img">
+    <div class="card-label">사진 첨부 (선택)</div>
+    <div
+      class="upload-area"
+      id="upload-area"
+      onclick="document.getElementById('file-input').click()"
+      ondragover="onDragOver(event)"
+      ondragleave="onDragLeave()"
+      ondrop="onDrop(event)"
+    >
+      <div class="upload-icon">📷</div>
+      <p>클릭하거나 사진을 드래그하세요</p>
+      <small>최대 4장 · JPG, PNG 지원</small>
+    </div>
+    <input type="file" id="file-input" multiple accept="image/*" style="display:none" onchange="handleFiles(this.files)">
+    <div class="image-grid" id="image-grid"></div>
+  </div>
+
+  <!-- Generate -->
+  <button id="generate-btn" class="hidden" onclick="generate()">초안 생성하기</button>
+
+  <!-- Output -->
+  <div class="card hidden" id="card-output">
+    <div class="output-header">
+      <div class="card-label" style="margin:0">생성된 초안</div>
+      <button class="copy-btn" id="copy-btn" onclick="copyOutput()">복사</button>
+    </div>
+    <div id="output-text"></div>
+    <div class="char-count hidden" id="char-count"></div>
+  </div>
+</div>
+
+<!-- History toggle -->
+<button class="history-toggle hidden" id="history-toggle" onclick="openHistory()">기록 보기</button>
+
+<!-- History drawer -->
+<div class="history-drawer" id="history-drawer">
+  <div class="history-header">
+    <span>생성 기록</span>
+    <button class="history-close" onclick="closeHistory()">×</button>
+  </div>
+  <div class="history-list" id="history-list"></div>
+  <div class="history-clear">
+    <button onclick="clearHistory()">전체 삭제</button>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+const state = {
+  category:    null,
+  subcategory: null,
+  images:      [],
+  password:    null,
+};
+
+// ===== FIELD DEFINITIONS =====
+const SUBS = {
+  '맛집': ['체험단용', '생생정보용'],
+  '여행': ['숙소', '투어', 'GEO글', '패키지', '티켓'],
+};
+
+const FIELDS = {
+  '맛집-체험단용': [
+    { id:'name',     label:'식당명 *',       type:'input',    placeholder:'예: 홍콩반점 강남점' },
+    { id:'location', label:'지역 *',          type:'input',    placeholder:'예: 서울 강남구' },
+    { id:'menu',     label:'제공받은 메뉴',   type:'input',    placeholder:'예: 짜장면, 탕수육' },
+    { id:'extra',    label:'추가 메모',        type:'textarea', placeholder:'분위기, 서비스, 특이사항 등' },
+  ],
+  '맛집-생생정보용': [
+    { id:'name',     label:'식당명 *',   type:'input',    placeholder:'예: 홍콩반점 강남점' },
+    { id:'location', label:'지역 *',     type:'input',    placeholder:'예: 서울 강남구' },
+    { id:'purpose',  label:'방문 목적', type:'select',   options:['선택 안함','데이트','가족 식사','혼밥','친구 모임','비즈니스'] },
+    { id:'extra',    label:'추가 메모', type:'textarea', placeholder:'맛, 가격, 서비스, 특이사항 등' },
+  ],
+  '여행-숙소': [
+    { id:'name',      label:'숙소명 *', type:'input',    placeholder:'예: 제주 신라호텔' },
+    { id:'location',  label:'지역 *',   type:'input',    placeholder:'예: 제주도 서귀포' },
+    { id:'companion', label:'동행',     type:'select',   options:['선택 안함','혼자','커플','가족','친구'] },
+    { id:'extra',     label:'추가 메모', type:'textarea', placeholder:'시설, 뷰, 서비스, 특이사항 등' },
+  ],
+  '여행-투어': [
+    { id:'name',         label:'투어명 *',  type:'input',    placeholder:'예: 오사카 반일 투어' },
+    { id:'location',     label:'지역 *',    type:'input',    placeholder:'예: 일본 오사카' },
+    { id:'participants', label:'인원',      type:'input',    placeholder:'예: 2명' },
+    { id:'extra',        label:'추가 메모', type:'textarea', placeholder:'일정, 가이드, 포함 내역 등' },
+  ],
+  '여행-GEO글': [
+    { id:'location', label:'지역 *',         type:'input',    placeholder:'예: 제주도, 강원도 속초' },
+    { id:'topic',    label:'주제/키워드 *',   type:'input',    placeholder:'예: 맛집 추천, 여행 코스' },
+    { id:'extra',    label:'포함할 내용',     type:'textarea', placeholder:'관광지, 음식, 교통 등' },
+  ],
+  '여행-패키지': [
+    { id:'name',     label:'패키지명 *', type:'input',    placeholder:'예: 발리 5박7일 허니문 패키지' },
+    { id:'location', label:'여행지 *',   type:'input',    placeholder:'예: 인도네시아 발리' },
+    { id:'duration', label:'기간',       type:'input',    placeholder:'예: 5박 7일' },
+    { id:'extra',    label:'추가 메모',  type:'textarea', placeholder:'포함 내역, 일정, 특이사항 등' },
+  ],
+  '여행-티켓': [
+    { id:'name',     label:'티켓/상품명 *', type:'input',    placeholder:'예: 유니버설 스튜디오 1일 입장권' },
+    { id:'location', label:'지역 *',        type:'input',    placeholder:'예: 일본 오사카' },
+    { id:'extra',    label:'추가 메모',     type:'textarea', placeholder:'이용 방법, 포함 내역, 특이사항 등' },
+  ],
+};
+
+// ===== PROMPTS =====
+function buildPrompt(key, values) {
+  const p = {
+    '맛집-체험단용': `당신은 네이버 블로그 체험단 후기 전문 작가입니다.
+아래 정보를 바탕으로 네이버 블로그 체험단 후기 글을 작성해주세요.
+
+식당명: ${values.name}
+지역: ${values.location}
+제공받은 메뉴: ${values.menu || '(미입력)'}
+추가 메모: ${values.extra || '(없음)'}
+
+[작성 조건]
+- 체험단 협찬 후기 스타일, 긍정적이고 따뜻한 톤
+- 구성: 방문 동기 → 매장 분위기 → 메뉴 상세 설명 → 서비스/친절도 → 총평
+- 소제목마다 이모지 활용 (★, ✔️, 🍽️ 등)
+- 친근한 구어체, 읽기 쉬운 문단 구성
+- 1500~2000자 분량
+- 마지막에 해시태그 15~20개 포함 (예: #강남맛집 #체험단후기)`,
+
+    '맛집-생생정보용': `당신은 네이버 블로그 맛집 리뷰 전문 작가입니다.
+아래 정보를 바탕으로 솔직하고 생생한 맛집 후기 글을 작성해주세요.
+
+식당명: ${values.name}
+지역: ${values.location}
+방문 목적: ${values.purpose || '(미입력)'}
+추가 메모: ${values.extra || '(없음)'}
+
+[작성 조건]
+- 실제 방문자의 솔직한 생생 후기 스타일
+- 구성: 방문 이유 → 접근성/웨이팅 → 분위기 → 메뉴 소개 → 맛 평가 → 가격/재방문 의사
+- 장단점 균형 있게 언급
+- 소제목마다 이모지 활용
+- 1500~2000자 분량
+- 마지막에 해시태그 15~20개 포함`,
+
+    '여행-숙소': `당신은 네이버 블로그 여행/숙박 리뷰 전문 작가입니다.
+아래 정보를 바탕으로 숙소 후기 블로그 글을 작성해주세요.
+
+숙소명: ${values.name}
+지역: ${values.location}
+동행: ${values.companion || '(미입력)'}
+추가 메모: ${values.extra || '(없음)'}
+
+[작성 조건]
+- 구성: 예약/체크인 경험 → 객실 상태 → 시설/어메니티 → 조식/부대시설 → 위치 → 총평
+- 감성적이면서도 실용적인 정보 포함
+- 소제목마다 이모지 활용
+- 1500~2000자 분량
+- 마지막에 해시태그 15~20개 포함`,
+
+    '여행-투어': `당신은 네이버 블로그 여행 투어 리뷰 전문 작가입니다.
+아래 정보를 바탕으로 투어 후기 블로그 글을 작성해주세요.
+
+투어명: ${values.name}
+지역: ${values.location}
+인원: ${values.participants || '(미입력)'}
+추가 메모: ${values.extra || '(없음)'}
+
+[작성 조건]
+- 구성: 투어 신청 계기 → 집합/시작 → 투어 일정 상세 → 가이드 평가 → 총평 및 추천 여부
+- 실용적인 팁과 포인트 포함
+- 소제목마다 이모지 활용
+- 1500~2000자 분량
+- 마지막에 해시태그 15~20개 포함`,
+
+    '여행-GEO글': `당신은 네이버 블로그 여행 지역 정보 전문 작가입니다.
+아래 정보를 바탕으로 지역 정보 중심의 SEO 최적화 블로그 글을 작성해주세요.
+
+지역: ${values.location}
+주제/키워드: ${values.topic}
+포함할 내용: ${values.extra || '(없음)'}
+
+[작성 조건]
+- 구성: 지역 소개 → 주요 관광지 → 맛집/카페 → 교통/숙소 정보 → 여행 팁
+- SEO를 위해 키워드를 자연스럽게 반복 사용
+- 실용적이고 구체적인 정보 중심
+- 소제목마다 이모지 활용
+- 2000~2500자 분량
+- 마지막에 해시태그 15~20개 포함`,
+
+    '여행-패키지': `당신은 네이버 블로그 여행 패키지 리뷰 전문 작가입니다.
+아래 정보를 바탕으로 여행 패키지 후기 블로그 글을 작성해주세요.
+
+패키지명: ${values.name}
+여행지: ${values.location}
+기간: ${values.duration || '(미입력)'}
+추가 메모: ${values.extra || '(없음)'}
+
+[작성 조건]
+- 구성: 패키지 선택 이유 → 출발 준비 → 일정별 상세 후기 → 숙소/식사 퀄리티 → 총평
+- 패키지 장단점 균형 있게 서술
+- 소제목마다 이모지 활용
+- 2000~2500자 분량
+- 마지막에 해시태그 15~20개 포함`,
+
+    '여행-티켓': `당신은 네이버 블로그 여행 티켓/입장권 리뷰 전문 작가입니다.
+아래 정보를 바탕으로 티켓/입장권 후기 블로그 글을 작성해주세요.
+
+티켓명: ${values.name}
+지역: ${values.location}
+추가 메모: ${values.extra || '(없음)'}
+
+[작성 조건]
+- 구성: 구매/예약 방법 → 현장 입장 과정 → 관람/체험 상세 → 편의시설 → 총평 및 추천 여부
+- 예약 팁, 할인 정보 등 실용적인 정보 포함
+- 소제목마다 이모지 활용
+- 1500~2000자 분량
+- 마지막에 해시태그 15~20개 포함`,
+  };
+  return p[key] || '';
+}
+
+// ===== AUTH =====
+async function login() {
+  const pw = document.getElementById('pw-input').value.trim();
+  if (!pw) return;
+
+  const btn = document.querySelector('.gate-btn');
+  btn.textContent = '확인 중...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw }),
+    });
+
+    if (res.ok) {
+      state.password = pw;
+      sessionStorage.setItem('blog-auth', pw);
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('history-toggle').classList.remove('hidden');
+    } else {
+      const input = document.getElementById('pw-input');
+      input.classList.add('shake');
+      input.addEventListener('animationend', () => input.classList.remove('shake'), { once: true });
+      document.getElementById('gate-err').textContent = '비밀번호가 올바르지 않습니다.';
+    }
+  } catch {
+    document.getElementById('gate-err').textContent = '연결 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+  }
+
+  btn.textContent = '입장하기';
+  btn.disabled = false;
+}
+
+// ===== CATEGORY / SUBCATEGORY =====
+function selectCategory(cat, el) {
+  state.category    = cat;
+  state.subcategory = null;
+
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+
+  const chips = document.getElementById('chips');
+  chips.innerHTML = SUBS[cat].map(s =>
+    `<div class="chip" onclick="selectSub('${s}', this)">${s}</div>`
+  ).join('');
+
+  show('card-sub');
+  hide('card-form');
+  hide('card-img');
+  hide('generate-btn');
+  hide('card-output');
+}
+
+function selectSub(sub, el) {
+  state.subcategory = sub;
+
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+
+  const key    = `${state.category}-${sub}`;
+  const fields = FIELDS[key];
+
+  document.getElementById('form-fields').innerHTML = fields.map(f => {
+    if (f.type === 'input') {
+      return `<div class="field"><label>${f.label}</label><input type="text" id="f-${f.id}" placeholder="${f.placeholder}"></div>`;
+    }
+    if (f.type === 'textarea') {
+      return `<div class="field"><label>${f.label}</label><textarea id="f-${f.id}" placeholder="${f.placeholder}"></textarea></div>`;
+    }
+    if (f.type === 'select') {
+      const opts = f.options.map(o => `<option value="${o}">${o}</option>`).join('');
+      return `<div class="field"><label>${f.label}</label><select id="f-${f.id}">${opts}</select></div>`;
+    }
+    return '';
+  }).join('');
+
+  show('card-form');
+  show('card-img');
+  show('generate-btn');
+  hide('card-output');
+}
+
+// ===== IMAGES =====
+function handleFiles(files) {
+  const slots = 4 - state.images.length;
+  Array.from(files).slice(0, slots).forEach(f => compressImage(f, (data, type) => {
+    state.images.push({ data, type });
+    renderImages();
+  }));
+}
+
+function compressImage(file, cb) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1024;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else        { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      cb(canvas.toDataURL('image/jpeg', 0.8).split(',')[1], 'image/jpeg');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderImages() {
+  document.getElementById('image-grid').innerHTML = state.images.map((img, i) => `
+    <div class="img-item">
+      <img src="data:${img.type};base64,${img.data}" alt="첨부 이미지 ${i+1}">
+      <button class="img-remove" onclick="removeImage(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+function removeImage(i) {
+  state.images.splice(i, 1);
+  renderImages();
+}
+
+function onDragOver(e) { e.preventDefault(); document.getElementById('upload-area').classList.add('drag-over'); }
+function onDragLeave() { document.getElementById('upload-area').classList.remove('drag-over'); }
+function onDrop(e)     { e.preventDefault(); onDragLeave(); handleFiles(e.dataTransfer.files); }
+
+// ===== GENERATE =====
+async function generate() {
+  if (!state.category || !state.subcategory) return;
+
+  const key    = `${state.category}-${state.subcategory}`;
+  const fields = FIELDS[key];
+
+  // Validate required fields
+  let valid = true;
+  fields.forEach(f => {
+    const el = document.getElementById(`f-${f.id}`);
+    if (!el) return;
+    if (f.label.includes('*') && !el.value.trim()) {
+      el.classList.add('invalid');
+      valid = false;
+    } else {
+      el.classList.remove('invalid');
+    }
+  });
+  if (!valid) return;
+
+  // Gather values
+  const values = {};
+  fields.forEach(f => {
+    const el = document.getElementById(`f-${f.id}`);
+    if (el) values[f.id] = el.value.trim();
+  });
+
+  const btn = document.getElementById('generate-btn');
+  btn.disabled = true;
+  btn.textContent = '생성 중...';
+
+  const outputEl = document.getElementById('output-text');
+  outputEl.textContent = '';
+  document.getElementById('char-count').classList.add('hidden');
+  show('card-output');
+  document.getElementById('card-output').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Add blinking cursor
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  outputEl.appendChild(cursor);
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        password: state.password,
+        prompt:   buildPrompt(key, values),
+        images:   state.images,
+      }),
+    });
+
+    if (!res.ok) {
+      cursor.remove();
+      outputEl.textContent = '오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      btn.disabled = false;
+      btn.textContent = '초안 생성하기';
+      return;
+    }
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6);
+        if (raw === '[DONE]') continue;
+        try {
+          const json = JSON.parse(raw);
+          if (json.type === 'content_block_delta' && json.delta?.type === 'text_delta') {
+            outputEl.insertBefore(document.createTextNode(json.delta.text), cursor);
+          }
+        } catch { /* ignore parse errors */ }
+      }
+    }
+
+    cursor.remove();
+
+    // Show char count and save history
+    const text = outputEl.textContent;
+    const charEl = document.getElementById('char-count');
+    charEl.textContent = `${text.length.toLocaleString()}자`;
+    charEl.classList.remove('hidden');
+
+    saveHistory(text, key);
+
+  } catch (e) {
+    cursor.remove();
+    outputEl.textContent = '연결 오류가 발생했습니다. 다시 시도해주세요.';
+  }
+
+  btn.disabled = false;
+  btn.textContent = '초안 생성하기';
+}
+
+// ===== COPY =====
+function copyOutput() {
+  const text = document.getElementById('output-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '복사됨';
+    setTimeout(() => btn.textContent = '복사', 2000);
+  });
+}
+
+// ===== HISTORY =====
+function saveHistory(text, key) {
+  const list = JSON.parse(localStorage.getItem('blog-history') || '[]');
+  list.unshift({ date: new Date().toLocaleString('ko-KR'), tag: key, text, chars: text.length });
+  if (list.length > 30) list.splice(30);
+  localStorage.setItem('blog-history', JSON.stringify(list));
+}
+
+function openHistory() {
+  renderHistoryList();
+  document.getElementById('history-drawer').classList.add('open');
+}
+
+function closeHistory() {
+  document.getElementById('history-drawer').classList.remove('open');
+}
+
+function renderHistoryList() {
+  const list = JSON.parse(localStorage.getItem('blog-history') || '[]');
+  const el   = document.getElementById('history-list');
+
+  if (list.length === 0) {
+    el.innerHTML = '<div class="history-empty">아직 생성된 글이 없습니다.</div>';
+    return;
+  }
+
+  el.innerHTML = list.map((item, i) => `
+    <div class="history-item" onclick="loadHistory(${i})">
+      <div class="history-item-meta">
+        <span class="history-item-tag">${item.tag}</span>
+        <span>${item.chars.toLocaleString()}자 · ${item.date}</span>
+      </div>
+      <div class="history-item-preview">${item.text}</div>
+    </div>
+  `).join('');
+}
+
+function loadHistory(i) {
+  const list = JSON.parse(localStorage.getItem('blog-history') || '[]');
+  const item = list[i];
+  if (!item) return;
+
+  const outputEl = document.getElementById('output-text');
+  outputEl.textContent = item.text;
+
+  const charEl = document.getElementById('char-count');
+  charEl.textContent = `${item.chars.toLocaleString()}자`;
+  charEl.classList.remove('hidden');
+
+  show('card-output');
+  closeHistory();
+  document.getElementById('card-output').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function clearHistory() {
+  if (!confirm('전체 기록을 삭제할까요?')) return;
+  localStorage.removeItem('blog-history');
+  renderHistoryList();
+}
+
+// ===== UTILS =====
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+
+// ===== INIT =====
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = sessionStorage.getItem('blog-auth');
+  if (saved) {
+    state.password = saved;
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display  = 'block';
+    document.getElementById('history-toggle').classList.remove('hidden');
+  }
+});
+</script>
+</body>
+</html>
